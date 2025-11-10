@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{Json, extract::State};
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    repo::{cache::InMemoryWeatherCache, yr::YrWeatherRepo},
+    repo::{WeatherCondition, WeatherData, cache::InMemoryWeatherCache, yr::YrWeatherRepo},
     service::WeatherService,
 };
 
@@ -14,6 +17,21 @@ mod service;
 struct AppState {
     weather_service: Arc<WeatherService>,
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(root, weather),
+    components(schemas(WeatherData, WeatherCondition)),
+    tags(
+        (name = "weather", description = "Weather API endpoints")
+    ),
+    info(
+        title = "echo Weather Proxy API",
+        version = "0.1.0",
+        description = "A weather proxy service for echo-webkom"
+    )
+)]
+struct ApiDoc;
 
 #[tokio::main]
 async fn main() {
@@ -27,19 +45,42 @@ async fn main() {
         weather_service: Arc::new(weather_service),
     };
 
-    let app = Router::new()
-        .route("/", get(root))
-        .route("/weather", get(weather))
-        .with_state(state);
+    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        .routes(routes!(root))
+        .routes(routes!(weather))
+        .with_state(state)
+        .split_for_parts();
+
+    let router =
+        router.merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", api.clone()));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    tracing::info!("🚀 Running Axum REST API on http://localhost:{port}");
+    tracing::info!("📖 Swagger UI available at http://localhost:{port}/swagger");
+
+    axum::serve(listener, router).await.unwrap();
 }
 
+#[utoipa::path(
+    get,
+    path = "/",
+    responses(
+        (status = 200, description = "Welcome message", body = String)
+    )
+)]
 async fn root() -> &'static str {
     "Welcome to the echo's Weather Proxy (https://github.com/echo-webkom/weather-proxy)! Visit /weather for current weather data."
 }
 
+#[utoipa::path(
+    get,
+    path = "/weather",
+    responses(
+        (status = 200, description = "Current weather data", body = WeatherData)
+    )
+)]
 async fn weather(State(state): State<AppState>) -> Json<repo::WeatherData> {
     let weather = state.weather_service.get_weather().await;
     Json(weather)

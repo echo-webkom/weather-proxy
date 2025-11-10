@@ -3,7 +3,7 @@ pub mod yr;
 
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum WeatherCondition {
     Sunny,
@@ -12,7 +12,7 @@ pub enum WeatherCondition {
     Snowy,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
 pub struct WeatherData {
     pub temperature: f32,
     pub condition: Option<WeatherCondition>,
