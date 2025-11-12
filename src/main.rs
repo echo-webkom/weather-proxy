@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use axum::{Json, extract::State};
+use axum::{Json, extract::State, http::HeaderValue};
+use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
@@ -51,8 +52,12 @@ async fn main() {
         .with_state(state)
         .split_for_parts();
 
-    let router =
-        router.merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", api.clone()));
+    let router = router
+        .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", api.clone()))
+        .layer(
+            CorsLayer::permissive()
+                .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap()),
+        );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let port = listener.local_addr().unwrap().port();
