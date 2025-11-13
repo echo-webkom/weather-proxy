@@ -508,6 +508,8 @@ impl YrWeatherRepo {
 #[async_trait::async_trait]
 impl WeatherRepo for YrWeatherRepo {
     async fn get_weather(&self) -> WeatherData {
+        tracing::info!("fetching weather data from Yr");
+
         let resp = self
             .client
             .get(

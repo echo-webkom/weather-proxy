@@ -14,11 +14,18 @@ impl InMemoryWeatherCache {
 
 impl WeatherCache for InMemoryWeatherCache {
     fn get_cached_weather(&self) -> Option<CacheValue<WeatherData>> {
+        tracing::info!(
+            message = "fetching cached weather data",
+            has_cache = self.cache.lock().unwrap().is_some()
+        );
+
         let cache = self.cache.lock().unwrap();
         cache.clone()
     }
 
     fn set_cached_weather(&self, data: WeatherData) {
+        tracing::info!(message = "updating cached weather data");
+
         let cache_value = CacheValue::new(data);
         let mut cache = self.cache.lock().unwrap();
         *cache = Some(cache_value);
