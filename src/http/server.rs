@@ -44,7 +44,10 @@ impl Server {
             .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", api.clone()))
             .layer(
                 CorsLayer::permissive()
-                    .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap()),
+                    .allow_origin([
+                        "http://localhost:5173".parse::<HeaderValue>().unwrap(),
+                        "https://screen.echo-webkom.no".parse::<HeaderValue>().unwrap()
+                        ])
             )
             .layer(TraceLayer::new_for_http());
 
