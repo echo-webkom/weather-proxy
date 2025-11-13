@@ -1,9 +1,11 @@
 use tracing_subscriber::{Layer, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
+use crate::config::Config;
+
 pub struct Tracing;
 
 impl Tracing {
-    pub fn init() {
+    pub fn init(config: &Config) {
         let env_filter =
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 format!(
@@ -13,12 +15,7 @@ impl Tracing {
                 .into()
             });
 
-        let is_prod = std::env::var("ENVIRONMENT")
-            .unwrap_or_default()
-            .to_lowercase()
-            == "production";
-
-        let fmt_layer = if is_prod {
+        let fmt_layer = if config.is_production {
             fmt::layer().json().boxed()
         } else {
             fmt::layer().boxed()
